@@ -1,0 +1,14 @@
+.loginForm{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    width: 400px;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.formDiv {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
