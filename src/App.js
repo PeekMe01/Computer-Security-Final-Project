@@ -11,69 +11,98 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [profilePic, setProfilePic] = useState('');
-  const [user, setUser] = useState({id: null,username: '', email: '', password: '', profilePic: null, usertype: null})
+  const [user, setUser] = useState({id: null,username: '', email: '', password: '', profilePic: '', usertype: ''})
   const [currentScreen, setCurrentScreen] = useState('home');
+  const [safeLogin, setSafeLogin]  = useState(true);
   //email' or 1=1; drop database compsecproj;
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    var myItem = localStorage.getItem('userInfo');
+
+    if (myItem !== null) {
+      // The item exists, so you can proceed to remove it
+      setUser(JSON.parse(localStorage.getItem('userInfo')));
   
-    if (token) {
-      // Send the token to the server for verification
-      // You can use a function to handle this, such as `getUserInfoFromToken`
-      getUserInfoFromToken(token);
+      console.log(user)
+    } else {
+      // The item doesn't exist or has already been removed
+      console.log('Item not found in localStorage.');
     }
   }, []);
 
-  const getUserInfoFromToken = async (token) => {
-    try {
-      // Make a request to the server to verify the token
-      const response = await fetch('http://localhost:4000/verify-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-      });
-      console.log(response)
-      if (response.ok) {
-        setUser(await response.json());
-        console.log(response.user)
-        // Set user info in your component state or global state management
-        // This would depend on how you manage state in your application
-      } else {
-        // Handle error, e.g., token is invalid or expired
-        console.error('Token verification failed');
-      }
-    } catch (error) {
-      console.error('Error verifying token:', error.message);
-    }
-  };
+
 
   const handleLogin = async e => {
     e.preventDefault();
     const userInfo = { email, password };
     // send the username and password to the server
     try {
-      const response = await axios.post(
-        "http://localhost:4000/login",
-        userInfo
-      );
+    const response = await axios.post(
+      "http://localhost:4000/login",
+       userInfo
+    );
+    console.log('the id is :' + response.data.data.id)
       setUser({
-        id: userInfo.id,
-        username: userInfo.username,
-        email: userInfo.email,
-        password: userInfo.password,
-        profilePic: userInfo.profilePic,
-        usertype: userInfo.usertype,
-      })
-      alert(response.data.message)
-      // Store the token in local storage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('id', response.data.data.id);
-      console.log(response.data.token)
-      setCurrentScreen('home')
-      console.log(user.usertype)
+        id: response.data.data.id,
+        username: response.data.data.username,
+        email: response.data.data.email,
+        password: response.data.data.password,
+        profilePic: response.data.data.profilePic,
+        usertype: response.data.data.usertype,
+    })
+
+    console.log(user)
+
+    var serializedObject = JSON.stringify({
+      id: response.data.data.id,
+      username: response.data.data.username,
+      email: response.data.data.email,
+      password: response.data.data.password,
+      profilePic: response.data.data.profilePic,
+      usertype: response.data.data.usertype,
+    });
+    // Store the user in local storage
+    localStorage.setItem('userInfo', serializedObject);
+
+    setCurrentScreen('home')
+    }catch(error){
+      alert(error.response.data.error);
+    }
+  }
+  
+  const handleLoginUnsafe = async e => {
+    e.preventDefault();
+    const userInfo = { email, password };
+    // send the username and password to the server
+    try {
+    const response = await axios.post(
+      "http://localhost:4000/loginUnsafe",
+       userInfo
+    );
+    console.log('the id is :' + response.data.data.id)
+      setUser({
+        id: response.data.data.id,
+        username: response.data.data.username,
+        email: response.data.data.email,
+        password: response.data.data.password,
+        profilePic: response.data.data.profilePic,
+        usertype: response.data.data.usertype,
+    })
+
+    console.log(user)
+
+    var serializedObject = JSON.stringify({
+      id: response.data.data.id,
+      username: response.data.data.username,
+      email: response.data.data.email,
+      password: response.data.data.password,
+      profilePic: response.data.data.profilePic,
+      usertype: response.data.data.usertype,
+    });
+    // Store the user in local storage
+    localStorage.setItem('userInfo', serializedObject);
+
+    setCurrentScreen('home')
     }catch(error){
       alert(error.response.data.error);
     }
@@ -90,12 +119,12 @@ function App() {
       );
       console.log(response);
       setUser({
-        id: userInfo.id,
-        username: userInfo.username,
-        email: userInfo.email,
-        password: userInfo.password,
-        profilePic: userInfo.profilePic,
-        usertype: userInfo.usertype,
+        id: response.data.data.id,
+        username: response.data.data.username,
+        email: response.data.data.email,
+        password: response.data.data.password,
+        profilePic: response.data.data.profilePic,
+        usertype: response.data.data.usertype,
       })
       alert(response.data.message)
       setCurrentScreen('home')
@@ -105,19 +134,41 @@ function App() {
     }
   }
 
+  const handleLogout = () => {
+    localStorage.removeItem('userInfo');
+    setUser({
+      id: null,
+      username: '',
+      email: '',
+      password: '',
+      profilePic: '',
+      usertype: '',
+    });
+  }
+
   if(currentScreen == 'home'){
     return (
       <div className="App">
         {user.email != '' ? (
         <>
           <p>Welcome back! {user.usertype=='admin'? <p>You are admin!</p>: <p>You are user {user.username}!</p>}</p>
+          <button onClick={()=>handleLogout()}>Logout</button>
         </>
       ) : (
-        <>
+        <div style={{ gap: 10, display: 'flex', justifyContent: 'center', flexDirection: 'column' }}>
         <p>Please log in.</p>
-        <button onClick={()=>setCurrentScreen('login')}>Go to Login</button>
-        <button onClick={()=>setCurrentScreen('register')}>Go to Register</button>
-        </>
+        <div style={{ gap: 10, display: 'flex', justifyContent: 'center', flexDirection: 'row' }}>
+          <button onClick={()=>{
+              setCurrentScreen('login');
+              setSafeLogin(true);
+            }}>Go to Login (safe)</button>
+          <button onClick={()=>{
+              setCurrentScreen('login');
+              setSafeLogin(false);
+            }}>Go to Login (unsafe)</button>
+          <button onClick={()=>setCurrentScreen('register')}>Go to Register</button>
+        </div>
+        </div>
       )}
       </div>
     );
@@ -125,15 +176,13 @@ function App() {
     if(currentScreen == 'login'){
       return (
         <div className="App">
-          {user.usertype}
-        <Login handleLogin={handleLogin} email={email} setEmail={setEmail} password={password} setPassword={setPassword} setCurrentScreen={setCurrentScreen}></Login>
-      </div>
+          {safeLogin==true?<Login handleLogin={handleLogin} email={email} setEmail={setEmail} password={password} setPassword={setPassword} setCurrentScreen={setCurrentScreen}></Login>:<Login handleLogin={handleLoginUnsafe} email={email} setEmail={setEmail} password={password} setPassword={setPassword} setCurrentScreen={setCurrentScreen}></Login>}
+        </div>
       )
     }else{
       if(currentScreen == 'register'){
         return (
           <div className="App">
-            {user.usertype}
           <Register handleRegister={handleRegister} username={username} setUsername={setUsername} email={email} setEmail={setEmail} password={password} setPassword={setPassword} profilePic={profilePic} setProfilePic={setProfilePic} setCurrentScreen={setCurrentScreen}></Register>
         </div>
         )

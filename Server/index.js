@@ -5,7 +5,6 @@ const cors = require("cors");
 const mysql = require ('mysql2');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
 
 const passport = require('passport');
 
@@ -26,11 +25,6 @@ const db = mysql.createConnection({
 app.get("/", cors(), async (req, res) =>{
     res.send("This is working")
 })
-
-app.post('/verify-token', passport.authenticate('jwt', { session: false }), (req, res) => {
-    // User is authenticated, send back user information
-    res.json({ user: req.user });
-  });
 
 // The sign up part secured
 app.post('/signup', async (req, res)=> {
@@ -129,8 +123,58 @@ app.post('/login', async (req,res) => {
                 profilePic,
                 usertype
             };
-            const token = jwt.sign({ userId: id, username: username, email: email, profilePic: profilePic, usertype: usertype }, 'niggas', { expiresIn: '1m' });
-            res.json({ message: 'User logged in successfully!', data:userData ,token:token });
+            res.json({ message: 'User logged in successfully!', data:userData });
+        }else{
+            return res.status(401).json({ error: 'Incorrect Password.' });
+        }
+    });
+});
+
+// The login part unsecure
+app.post('/loginUnsafe', async (req,res) => {
+    const { email, password } = req.body;
+    const sql = `SELECT * FROM accounts WHERE email = '${email}'`;
+    
+
+    // Log the SQL query with values
+    console.log('Executing SQL:', sql);
+
+    if (!email || !password) {
+        return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    db.query(sql, async (error, results) => {
+        if (error) {
+            console.error('Error:', error);
+            return res.status(500).json({ error: req.body.email });
+        }
+
+        if(results.length == 0){
+            console.error(error)
+            return res.status(401).json({ error: 'Invalid credentials.' });
+        }
+
+        var id = results[0].id;
+        var username = results[0].username;
+        var email = results[0].email;
+        var _password = results[0].password;
+        var profilePic = results[0].profilePic;
+        var usertype = results[0].usertype;
+
+        //now to compare the passwords
+
+        const passwordMatch = await bcrypt.compare(password, _password);
+
+        if (passwordMatch) {
+            const userData = {
+                id,
+                username,
+                email,
+                password,
+                profilePic,
+                usertype
+            };
+            res.json({ message: 'User logged in successfully!', data:userData });
         }else{
             return res.status(401).json({ error: 'Incorrect Password.' });
         }
