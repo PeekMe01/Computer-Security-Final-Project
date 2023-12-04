@@ -9,13 +9,29 @@ const Manager = () => {
     axios.get('http://localhost:4000/allusersinfo')
       .then(response => {
         if(response.data.access===false){
-          navigate('/');
+          
         }
         setUsersInfo(response.data);
       })
       .catch(error => {
-        alert('Error fetching data: ' + error.response.data.access);
+        //alert('Error fetching data: ' + error.response.data.access);
       });
+
+      axios.get('http://localhost:4000/')
+    .then( res => {
+      //console.log(res)
+      if(res.data.valid){
+        if(res.data.userType=='user'){
+          navigate('/');
+        }else{
+          navigate('/manager')
+        }
+      }else{
+        navigate('/login')
+      }
+    })
+    .catch(err => console.log(err))
+
   }, [navigate]);
     function deleteuser(id){
       axios.post('http://localhost:4000/deleteuser', { id})
