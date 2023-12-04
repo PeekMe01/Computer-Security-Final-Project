@@ -1,16 +1,36 @@
 const express = require("express");
-const app = express();
-const port = 4000;
 const cors = require("cors");
 const mysql = require ('mysql2');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
+
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+
+const app = express();
+const port = 4000;
+
 let userType = ''
 
 app.use(express.urlencoded({extended: true}))
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: ["http://localhost:3000"],
+    methods: ["POST","GET"],
+    credentials: true
+}))
 app.use(bodyParser.json());
+
+app.use(cookieParser());
+app.use(session({
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: false,
+        maxAge: 1000 * 60
+    }
+}))
 
 
 const db = mysql.createConnection({
@@ -21,8 +41,13 @@ const db = mysql.createConnection({
 });
 
 
-app.get("/", cors(), async (req, res) =>{
-    res.send("This is working")
+app.get("/", async (req, res) =>{
+    //res.send("This is working")
+    if(req.session.username) {
+        return res.json({valid: true, username: req.session.username, userType: req.session.userType})
+    }else{
+        return res.json({valid: false})
+    }
 })
 
 // The sign up part secured
@@ -107,6 +132,9 @@ app.post('/login', async (req,res) => {
             return res.status(402).json({ error: 'Invalid credentials.' });
         }
 
+        req.session.username = results[0].username;
+
+        console.log(req.session.username);
         var id = results[0].id;
         var username = results[0].username;
         var email = results[0].email;
@@ -128,11 +156,14 @@ app.post('/login', async (req,res) => {
                 usertype
             };
             if(usertype===null){
-                res.json({ message: 'User logged in successfully!', data:userData });
+                req.session.userType = 'user';
+                res.json({ message: 'User logged in successfully!', data:userData, username: req.session.username, userType: req.session.userType });
                 userType = 'user'
             }
             else{
-                res.json({ message: 'Manager logged in successfully!', data:userData });
+                req.session.userType = 'admin';
+                console.log(req.session.userType)
+                res.json({ message: 'Manager logged in successfully!', data:userData, username: req.session.username, userType: req.session.userType });
                 userType = 'admin'
             }
         }else{
@@ -142,55 +173,55 @@ app.post('/login', async (req,res) => {
 });
 
 // The login part unsecure
-app.post('/loginUnsafe', async (req,res) => {
-    const { email, password } = req.body;
-    const sql = `SELECT * FROM accounts WHERE email = '${email}'`;
+// app.post('/loginUnsafe', async (req,res) => {
+//     const { email, password } = req.body;
+//     const sql = `SELECT * FROM accounts WHERE email = '${email}'`;
     
 
-    // Log the SQL query with values
-    console.log('Executing SQL:', sql);
+//     // Log the SQL query with values
+//     console.log('Executing SQL:', sql);
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'All fields are required.' });
-    }
+//     if (!email || !password) {
+//         return res.status(400).json({ error: 'All fields are required.' });
+//     }
 
-    db.query(sql, async (error, results) => {
-        if (error) {
-            console.error('Error:', error);
-            return res.status(500).json({ error: req.body.email });
-        }
+//     db.query(sql, async (error, results) => {
+//         if (error) {
+//             console.error('Error:', error);
+//             return res.status(500).json({ error: req.body.email });
+//         }
 
-        if(results.length === 0){
-            console.error(error)
-            return res.status(401).json({ error: 'Invalid credentials.' });
-        }
+//         if(results.length === 0){
+//             console.error(error)
+//             return res.status(401).json({ error: 'Invalid credentials.' });
+//         }
 
-        var id = results[0].id;
-        var username = results[0].username;
-        var email = results[0].email;
-        var _password = results[0].password;
-        var profilePic = results[0].profilePic;
-        var usertype = results[0].usertype;
+//         var id = results[0].id;
+//         var username = results[0].username;
+//         var email = results[0].email;
+//         var _password = results[0].password;
+//         var profilePic = results[0].profilePic;
+//         var usertype = results[0].usertype;
 
-        //now to compare the passwords
+//         //now to compare the passwords
 
-        const passwordMatch = await bcrypt.compare(password, _password);
+//         const passwordMatch = await bcrypt.compare(password, _password);
 
-        if (passwordMatch) {
-            const userData = {
-                id,
-                username,
-                email,
-                password,
-                profilePic,
-                usertype
-            };
-            res.json({ message: 'User logged in successfully!', data:userData });
-        }else{
-            return res.status(401).json({ error: 'Incorrect Password.' });
-        }
-    });
-});
+//         if (passwordMatch) {
+//             const userData = {
+//                 id,
+//                 username,
+//                 email,
+//                 password,
+//                 profilePic,
+//                 usertype
+//             };
+//             res.json({ message: 'User logged in successfully!', data:userData });
+//         }else{
+//             return res.status(401).json({ error: 'Incorrect Password.' });
+//         }
+//     });
+// });
 app.get('/allusersinfo', async (req, res) => {
     if(userType=='user'){
         res.status(500).json({access: 'Access Denied'})
@@ -263,5 +294,5 @@ app.get('/allusersinfo', async (req, res) => {
   });
 
 app.listen(port, () => {
-    console.log(`Listening at http://localhosty:${port}`)
+    console.log(`Listening at http://localhost:${port}`)
 })
