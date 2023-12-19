@@ -1,9 +1,11 @@
 const express = require("express");
 const cors = require("cors");
+//4-for Sql injection
 const mysql = require ('mysql2');
 const bodyParser = require('body-parser');
+//3-for Data Encription
 const bcrypt = require('bcrypt');
-
+//5-Session management
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 
@@ -44,7 +46,7 @@ const db = mysql.createConnection({
 app.get("/", async (req, res) =>{
     //res.send("This is working")
     if(req.session.username) {
-        return res.json({valid: true, username: req.session.username, userType: req.session.userType})
+        return res.json({valid: true, username: req.session.username ,userType: req.session.userType})
     }else{
         return res.json({valid: false})
     }
@@ -59,10 +61,10 @@ app.post('/signup', async (req, res)=> {
 
     const sql = 'SELECT id FROM accounts WHERE email = ?';
 
-    // Hashing the password
+    //3- Hashing the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // why its againt sql injection
+    //4- why its againt sql injection
     const formattedQuery = mysql.format(sql, [email,hashedPassword]);
     // Log the SQL query with values
     console.log('Executing SQL:', formattedQuery);
@@ -84,6 +86,7 @@ app.post('/signup', async (req, res)=> {
             _profilePic: JSON.stringify(profilePic),
         };
         console.error(`${newUser._username} ${newUser._email} ${newUser._password} ${newUser._profilePic}`)
+        //adding user.(2-for access control)
         db.query('INSERT INTO accounts(username,email,password,profilePic) VALUES(?,?,?,?)', [newUser._username, newUser._email, newUser._password, newUser._profilePic], (error) => {
         // for manager db.query('INSERT INTO accounts(username,email,password,profilePic,usertype) VALUES(?,?,?,?,?)', [newUser._username, newUser._email, newUser._password, newUser._profilePic,"1"], (error) => {    
        if (error) {
@@ -103,7 +106,7 @@ app.post('/signup', async (req, res)=> {
     });
 });
 
-// The login part secured
+//1-The login part secured (User Authentication)
 app.post('/login', async (req,res) => {
     const { email, password } = req.body;
 
@@ -114,7 +117,7 @@ app.post('/login', async (req,res) => {
     const sql = 'SELECT * FROM accounts WHERE email = ?';
     
 
-    // why its againt sql injection
+    //4-why its againt sql injection
     const formattedQuery = mysql.format(sql, [email]);
     // Log the SQL query with values
     console.log('Executing SQL:', formattedQuery);
@@ -131,19 +134,19 @@ app.post('/login', async (req,res) => {
             console.error(error)
             return res.status(402).json({ error: 'Invalid credentials.' });
         }
-
+        //5-session management
         req.session.username = results[0].username;
-
         console.log(req.session.username);
         var id = results[0].id;
         var username = results[0].username;
         var email = results[0].email;
         var _password = results[0].password;
-        var profilePic = results[0].profilePic;
+        var profilePic = results[0].profilePic ? results[0].profilePic.toString('base64') : null;
         var usertype = results[0].usertype;
-     
-        //now to compare the passwords
 
+        console.log(profilePic)
+     
+        //now to compare the passwords for(3-data encryption)
         const passwordMatch = await bcrypt.compare(password, _password);
 
         if (passwordMatch) {
@@ -155,9 +158,10 @@ app.post('/login', async (req,res) => {
                 profilePic,
                 usertype
             };
+            //2-access control
             if(usertype===null){
                 req.session.userType = 'user';
-                res.json({ message: 'User logged in successfully!', data:userData, username: req.session.username, userType: req.session.userType });
+                res.json({ message: 'User logged in successfully!', data:userData, username: req.session.username, userType: req.session.userType, profilePic: profilePic });
                 userType = 'user'
             }
             else{
@@ -170,6 +174,17 @@ app.post('/login', async (req,res) => {
             return res.status(401).json({ error: 'Incorrect Password.' });
         }
     });
+});
+
+app.get('/logout', (req, res) => {
+    // Destroy the session
+    req.session.destroy();
+
+    // Remove the session cookie from the client-side
+    res.clearCookie('connect.sid');
+
+    // Send a response indicating successful logout
+    res.json({ message: 'Logged out successfully!' });
 });
 
 // The login part unsecure
@@ -223,10 +238,6 @@ app.post('/login', async (req,res) => {
 //     });
 // });
 app.get('/allusersinfo', async (req, res) => {
-    if(userType=='user'){
-        res.status(500).json({access: 'Access Denied'})
-    }
-    else{
             const sql = `SELECT * FROM accounts where usertype is null`;
         
             db.query(sql, (error, results) => {
@@ -238,7 +249,7 @@ app.get('/allusersinfo', async (req, res) => {
                 res.json(results);
             }
             });
-    }
+    
   });
   app.post('/deleteuser', async (req, res) => {
     const userId = req.body.id;
@@ -266,7 +277,7 @@ app.get('/allusersinfo', async (req, res) => {
   });
 
 
-  app.get('/userinfo/:i', async(req, res) => {
+  /*app.get('/userinfo/:i', async(req, res) => {
     const userId =  req.params.i;
     console.error(userId)
     if (!userId) {
@@ -292,7 +303,7 @@ app.get('/allusersinfo', async (req, res) => {
       res.json(userData);
     });
   });
-
+*/
 app.listen(port, () => {
     console.log(`Listening at http://localhost:${port}`)
 })

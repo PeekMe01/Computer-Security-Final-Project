@@ -16,12 +16,12 @@ const Manager = () => {
       .catch(error => {
         //alert('Error fetching data: ' + error.response.data.access);
       });
-
+        
       axios.get('http://localhost:4000/')
     .then( res => {
-      //console.log(res)
+      console.log(res.data)
       if(res.data.valid){
-        if(res.data.userType=='user'){
+        if(res.data.userType==='user'){
           navigate('/');
         }else{
           navigate('/manager')
@@ -32,7 +32,7 @@ const Manager = () => {
     })
     .catch(err => console.log(err))
 
-  }, [navigate]);
+  },[navigate]);
     function deleteuser(id){
       axios.post('http://localhost:4000/deleteuser', { id})
       .then(response => {

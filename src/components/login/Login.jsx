@@ -2,27 +2,12 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import styles from './LoginForm.module.css';
 import axios from 'axios'
-import { useEffect } from 'react';
 
 const Login=()=> {
 
   const navigate = useNavigate();
 
   axios.defaults.withCredentials = true;
-
-  useEffect(() => {
-    axios.get('http://localhost:4000/')
-    .then( res => {
-      //console.log(res)
-      if(res.data.valid){
-        navigate('/');
-      }else{
-        navigate('/login')
-      }
-    })
-    .catch(err => console.log(err))
-  })
-
   const submit = async (e) => {
     e.preventDefault();
     const email = e.target.email.value;
@@ -33,11 +18,10 @@ const Login=()=> {
         navigate('/manager'); 
       }
       else{
-
         navigate('/');
     }
     } catch (error) {
-      // alert('Error: ' + error.response.data.error);
+       alert('Error: ' + error.response.data.error);
     }
   };
   return (
@@ -55,7 +39,7 @@ const Login=()=> {
     </div>
 
     <div className={styles.formDiv}>
-      <button onClick={() => navigate('/')} className={styles.goBackBtn}>
+      <button onClick={() => navigate('/')} className={styles.goBackBtn} style={{marginBottom:'20px'}}>
         Go Back
       </button>
       <input type='submit' value='Submit' className={styles.submitBtn} />
