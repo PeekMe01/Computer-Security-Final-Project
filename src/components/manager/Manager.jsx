@@ -6,6 +6,21 @@ const Manager = () => {
   const [usersInfo, setUsersInfo] = useState(null);
   const navigate = useNavigate();
   useEffect(() => {
+    axios.get('http://localhost:4000/')
+    .then( res => {
+      console.log(res.data)
+      if(res.data.valid){
+        if(res.data.userType==='user'){
+          navigate('/');
+        }else{
+          navigate('/manager')
+        }
+      }else{
+        navigate('/')
+      }
+    })
+    .catch(err => console.log(err))
+    
     axios.get('http://localhost:4000/allusersinfo')
       .then(response => {
         if(response.data.access===false){
@@ -17,22 +32,9 @@ const Manager = () => {
         //alert('Error fetching data: ' + error.response.data.access);
       });
 
-      axios.get('http://localhost:4000/')
-    .then( res => {
-      //console.log(res)
-      if(res.data.valid){
-        if(res.data.userType=='user'){
-          navigate('/');
-        }else{
-          navigate('/manager')
-        }
-      }else{
-        navigate('/login')
-      }
-    })
-    .catch(err => console.log(err))
+  },[navigate]);
 
-  }, [navigate]);
+  
     function deleteuser(id){
       axios.post('http://localhost:4000/deleteuser', { id})
       .then(response => {
@@ -46,6 +48,7 @@ const Manager = () => {
     }
   return (
     <div>
+      <button onClick={()=>navigate('/')}>Home</button>
       <h1>All Users Information</h1>
       <table className={styles.usertable}>
       <thead>
