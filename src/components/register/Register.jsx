@@ -20,10 +20,19 @@ const Register=()=> {
   };
   const submit = async (e) => {
     e.preventDefault();
-    const username = e.target.username.value;
-    const email = e.target.email.value;
-    const password = e.target.password.value;
-    const profilePicFile = e.target.file.files[0];
+    let username;
+    let email;
+    let password;
+    let profilePicFile;
+    try{
+      username = e.target.username.value;
+      email = e.target.email.value;
+      password = e.target.password.value;
+      profilePicFile = e.target.file.files[0];
+    }catch(error){
+      alert('Kifek')
+    }
+    
     console.log(profilePicFile)
     if(profilePicFile.name.slice(profilePicFile.name.length -3,profilePicFile.name.length)==='jpg'
     || profilePicFile.name.slice(profilePicFile.name.length -3,profilePicFile.name.length)==='png'){
@@ -39,7 +48,8 @@ const Register=()=> {
           console.log('Signup successful:', response.data);
           navigate('/');
         } catch (error) {
-          alert('Signup failed: ', error.response.data.error);
+          const err = error.response.data.error
+          alert('Signup failed: ' + err);
         }
     }
     else{

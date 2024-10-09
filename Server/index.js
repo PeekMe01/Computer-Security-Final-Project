@@ -45,6 +45,7 @@ const db = mysql.createConnection({
 
 app.get("/", async (req, res) =>{
     //res.send("This is working")
+    console.log(req.session.username)
     if(req.session.username) {
         return res.json({valid: true, username: req.session.username ,userType: req.session.userType})
     }else{
@@ -57,6 +58,10 @@ app.post('/signup', async (req, res)=> {
     const { username, email, password, profilePic} = req.body;
     if (!username || !email || !password || !profilePic) {
         return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    if(password.length<8){
+        return res.status(400).json({ error: 'Password is shorter than 8 characters.' });
     }
 
     const sql = 'SELECT id FROM accounts WHERE email = ?';
